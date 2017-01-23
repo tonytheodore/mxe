@@ -2,14 +2,15 @@ This file is part of MXE. See LICENSE.md for licensing information.
 
 Contains ad hoc patches for cross building.
 
-From 480e2ec663ef867e7892dbbc624737cae176c717 Mon Sep 17 00:00:00 2001
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
 From: Dominik Schmidt <dev@dominik-schmidt.de>
 Date: Fri, 6 Feb 2015 01:55:40 +0100
 Subject: [PATCH] Add LASTFM_LIB_VERSION_SUFFIX to include dir as well
  https://github.com/lastfm/liblastfm/commit/480e2ec663ef867e7892dbbc624737cae176c717
 
+
 diff --git a/src/CMakeLists.txt b/src/CMakeLists.txt
-index 211ca7e..0f872fb 100644
+index 1111111..2222222 100644
 --- a/src/CMakeLists.txt
 +++ b/src/CMakeLists.txt
 @@ -105,4 +105,4 @@ install(TARGETS ${LASTFM_LIB_TARGET_NAME}
@@ -19,7 +20,7 @@ index 211ca7e..0f872fb 100644
 -install(FILES ${liblastfm_HEADERS} DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/lastfm/)
 +install(FILES ${liblastfm_HEADERS} DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/lastfm${LASTFM_LIB_VERSION_SUFFIX}/)
 diff --git a/src/fingerprint/CMakeLists.txt b/src/fingerprint/CMakeLists.txt
-index fbc492c..126f8d9 100644
+index 1111111..2222222 100644
 --- a/src/fingerprint/CMakeLists.txt
 +++ b/src/fingerprint/CMakeLists.txt
 @@ -48,4 +48,4 @@ install(TARGETS ${FINGERPRINT_LIB_TARGET_NAME}
@@ -28,3 +29,71 @@ index fbc492c..126f8d9 100644
  
 -install(FILES ${lastfm_fingerprint_HEADERS} DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/lastfm/)
 +install(FILES ${lastfm_fingerprint_HEADERS} DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/lastfm${LASTFM_LIB_VERSION_SUFFIX}/)
+
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Tony Theodore <tonyt@logyst.com>
+Date: Tue, 24 Jan 2017 00:12:20 +1100
+Subject: [PATCH] fix static builds
+
+
+diff --git a/CMakeLists.txt b/CMakeLists.txt
+index 1111111..2222222 100644
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -61,6 +61,18 @@ else()
+     endmacro()
+ endif()
+ 
++# use pkg-config to find qt lib dependencies
++find_package(PkgConfig REQUIRED)
++if(BUILD_WITH_QT4)
++    pkg_check_modules(QT_PKGCONFIG Qt5Network)
++else()
++    pkg_check_modules(QT_PKGCONFIG QtNetwork)
++endif()
++link_directories(${QT_PKGCONFIG_LIBRARY_DIRS})
++
++if(BUILD_SHARED)
++    set(_SHARED SHARED)
++endif()
+ 
+ if(CMAKE_COMPILER_IS_GNUCXX)
+     add_definitions("-fno-operator-names -fvisibility-inlines-hidden -fvisibility=hidden")
+diff --git a/src/CMakeLists.txt b/src/CMakeLists.txt
+index 1111111..2222222 100644
+--- a/src/CMakeLists.txt
++++ b/src/CMakeLists.txt
+@@ -87,10 +87,10 @@ if(UNIX AND NOT APPLE)
+     list(APPEND liblastfm_QT5_MODULES DBus)
+ endif()
+ 
+-add_library(${LASTFM_LIB_TARGET_NAME} SHARED ${liblastfm_SOURCES})
++add_library(${LASTFM_LIB_TARGET_NAME} ${_SHARED} ${liblastfm_SOURCES})
+ qt5_use_modules(${LASTFM_LIB_TARGET_NAME} ${liblastfm_QT5_MODULES})
+ 
+-target_link_libraries(${LASTFM_LIB_TARGET_NAME} ${liblastfm_LIBRARIES})
++target_link_libraries(${LASTFM_LIB_TARGET_NAME} ${liblastfm_LIBRARIES} ${QT_PKGCONFIG_LIBRARIES})
+ set_target_properties(${LASTFM_LIB_TARGET_NAME} PROPERTIES
+     VERSION ${LASTFM_VERSION_STRING}
+     SOVERSION ${LASTFM_SOVERSION}
+diff --git a/src/fingerprint/CMakeLists.txt b/src/fingerprint/CMakeLists.txt
+index 1111111..2222222 100644
+--- a/src/fingerprint/CMakeLists.txt
++++ b/src/fingerprint/CMakeLists.txt
+@@ -24,7 +24,7 @@ set(lastfm_fingerprint_HEADERS
+     FingerprintableSource.h
+ )
+ 
+-add_library(${FINGERPRINT_LIB_TARGET_NAME} SHARED ${lastfm_fingerprint_SOURCES})
++add_library(${FINGERPRINT_LIB_TARGET_NAME} ${_SHARED} ${lastfm_fingerprint_SOURCES})
+ 
+ target_link_libraries(${FINGERPRINT_LIB_TARGET_NAME}
+     ${LASTFM_LIB_TARGET_NAME}
+@@ -32,6 +32,7 @@ target_link_libraries(${FINGERPRINT_LIB_TARGET_NAME}
+     ${QT_QTCORE_LIBRARY}
+     ${LIBSAMPLERATE_LIBRARY}
+     ${LIBFFTW3_LIBRARY}
++    ${QT_PKGCONFIG_LIBRARIES}
+ )
+ 
+ set_target_properties(${FINGERPRINT_LIB_TARGET_NAME} PROPERTIES
