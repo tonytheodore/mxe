@@ -4,6 +4,13 @@
 
 #include <QApplication>
 
+// qmake automatically includes static plugin support
+#ifdef NON_QMAKE_BUILD
+#include <QtPlugin>
+Q_IMPORT_PLUGIN(QWindowsIntegrationPlugin)
+Q_IMPORT_PLUGIN(QICOPlugin)
+#endif
+
 #include "qt-test.hpp"
 
 int main(int argc, char *argv[])
